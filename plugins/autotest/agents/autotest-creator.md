@@ -136,6 +136,39 @@ Skip trivial getters/setters/Lombok-generated code.
 6. If JaCoCo output is available, report line coverage for the class under
    test against the coverage target.
 
+# Review mode (existing test class)
+
+When the target class ALREADY has a non-empty, non-commented test class — or
+the orchestrator explicitly asks for review mode — do not regenerate or
+rewrite the existing tests. Instead:
+
+1. Read the production class and its existing test class fully.
+2. Run the existing tests: `mvn -q test -Dtest=<ClassName>Test` (or Gradle
+   equivalent). Report pass/fail counts.
+3. Measure coverage with JaCoCo:
+   - If the build already configures JaCoCo, use its report output (find the
+     configured `outputDirectory`; default `target/site/jacoco/`).
+   - If not, run it from the command line WITHOUT editing the build file:
+     `mvn org.jacoco:jacoco-maven-plugin:prepare-agent test
+     -Dtest=<ClassName>Test org.jacoco:jacoco-maven-plugin:report`
+   - Parse `jacoco.csv` (or the HTML/XML report) for the row of the class
+     under test and compute line % and branch % as covered/(covered+missed).
+4. Report the measured percentage against the coverage target and state
+   plainly whether it meets the target, and highlight if it is below the
+   fail-below threshold.
+5. Identify coverage gaps: list untested public methods, uncovered branches,
+   and missing edge-case categories (null/empty/boundary/exception) with a
+   one-line suggested test for each. Suggest only — do not write new tests in
+   review mode unless the user explicitly asked to augment.
+6. Review the existing tests' quality briefly: naming convention,
+   `@DisplayName` usage, given/when/then structure, AssertJ usage, and
+   whether assertions verify side effects. Report deviations as suggestions,
+   not edits.
+7. Apply the copyright header and `@author` policy: if the existing test
+   class or the class under test is missing the header or `@author` javadoc,
+   add the missing piece(s) — comment-only, reported in the summary. This is
+   the ONLY file modification permitted in review mode.
+
 # Acceptance-criteria mode (test-first)
 
 When given acceptance criteria instead of a class: write one test per AC using
@@ -150,3 +183,9 @@ Your final report must include: files created (paths), number of tests by
 category (happy/null/empty/boundary/exception), compile and run status,
 coverage estimate vs target, and any suspected production bugs found. Never
 claim a suite is merge-ready if it did not compile and pass.
+
+In review mode the report must instead include: the existing test file path,
+existing test count and pass/fail status, MEASURED line and branch coverage
+percentage vs the target (state the tool used), the list of coverage gaps
+with suggested tests, quality observations, and any header/`@author`
+additions made.

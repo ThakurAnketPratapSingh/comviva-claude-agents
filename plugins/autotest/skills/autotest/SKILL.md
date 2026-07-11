@@ -20,8 +20,8 @@ when there are multiple classes).
   list matches and ask.
 - A directory path → package mode: every `.java` file in it (non-recursive
   unless the path ends with `/**`), minus files matched by `exclude_paths` in
-  `.rovo-test.yml` and minus classes that already have a non-empty,
-  non-commented test class.
+  `.rovo-test.yml`. Classes that already have a non-empty, non-commented test
+  class are NOT dropped — they become **review targets** (see Execution).
 - `--diff` → run `git diff --name-only HEAD` plus `git diff --name-only
   <default-branch>...HEAD`; take the union of changed `src/main/java/**/*.java`
   files as targets.
@@ -35,14 +35,24 @@ when there are multiple classes).
 1. Read `.rovo-test.yml` in the repo root for config (use the agent's built-in
    defaults if absent); pass relevant settings into each agent prompt along
    with the resolved absolute file path(s).
-2. For each target class, launch an `autotest-creator` agent with: the file
-   path, the config values, and the instruction to compile and run the tests
-   before reporting.
+2. Split targets into two groups by checking `src/test/java` for a mirrored
+   `<ClassName>Test.java` that is non-empty and non-commented:
+   - **No existing test** → launch an `autotest-creator` agent in GENERATE
+     mode with: the file path, the config values, and the instruction to
+     compile and run the tests before reporting.
+   - **Existing test** → launch an `autotest-creator` agent in REVIEW mode
+     with: the production file path, the existing test file path, the config
+     values, and the instruction to run the existing tests with coverage and
+     report the measured coverage percentage vs the target — without
+     rewriting the existing tests.
 3. Cap parallelism at 4 agents; queue the rest.
 
 ## Final report to the user
 
-Aggregate the agent reports into one table: class → test file → tests written
-→ compile/run status → coverage vs target. List any suspected production bugs
-the agents flagged. Do not commit anything — leave the new test files in the
-working tree for the user to review, and remind them to review before merging.
+Aggregate the agent reports into one table: class → mode
+(generated/reviewed) → test file → tests written or existing test count →
+compile/run status → measured coverage % vs target. For reviewed classes,
+also list the coverage gaps the agent identified (untested public methods or
+branches). List any suspected production bugs the agents flagged. Do not
+commit anything — leave new/modified files in the working tree for the user
+to review, and remind them to review before merging.

@@ -88,7 +88,10 @@ Every suite follows the same rules:
 3. **It never commits.** Generated files sit in your working tree for review;
    you commit them with your feature branch.
 4. **It skips what shouldn't be tested**: getters/setters, Lombok-generated
-   code, DTO/model packages, and classes that already have real tests.
+   code, and DTO/model packages. Classes that already have real tests are
+   not regenerated — they are **reviewed** instead: the existing tests are
+   run with JaCoCo, and the report shows the measured coverage percentage
+   vs the target plus any coverage gaps.
 5. **Every file it creates carries the Comviva copyright header** and an
    `@author` javadoc derived from your git config; it also adds these to
    touched files that are missing them.
@@ -140,5 +143,8 @@ The union of `git diff HEAD` and `git diff <default-branch>...HEAD`,
 filtered to `src/main/java/**/*.java`.
 
 **Can it modify existing tests?**
-No. It skips classes that already have non-empty test classes; regeneration
-requires deleting the old test file first.
+No. A class that already has a non-empty test class goes through review mode
+instead: the existing tests are run with coverage, and you get the measured
+percentage, pass/fail status, and a gap list — the only change ever made to
+an existing test file is adding a missing copyright header or `@author`
+javadoc. Regeneration requires deleting the old test file first.

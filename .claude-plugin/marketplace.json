@@ -12,8 +12,8 @@
     {
       "name": "autotest",
       "source": "./plugins/autotest",
-      "description": "Generate complete JUnit 5 + Mockito + AssertJ test suites for Java classes, packages, changed files (--diff), or acceptance criteria. Compiles and runs what it generates.",
-      "version": "1.0.2",
+      "description": "Generate complete JUnit 5 + Mockito + AssertJ test suites for Java classes, packages, changed files (--diff), or acceptance criteria. Compiles and runs what it generates; reviews classes that already have tests and reports measured coverage.",
+      "version": "1.0.3",
       "author": { "name": "Anket Pratap Singh" },
       "keywords": ["java", "junit5", "mockito", "testing", "spring-boot"]
     }
