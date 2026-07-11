@@ -82,11 +82,16 @@ Every suite follows the same rules:
    mistakes until green.
 2. **It never edits production code.** If a generated test exposes a real
    bug, the test is marked `@Disabled("documents suspected bug: ...")` and
-   the bug is called out in the summary.
+   the bug is called out in the summary. (Sole exception: if the class under
+   test is missing the Comviva copyright header or `@author` javadoc, the
+   agent adds them — a comment-only addition, reported in the summary.)
 3. **It never commits.** Generated files sit in your working tree for review;
    you commit them with your feature branch.
 4. **It skips what shouldn't be tested**: getters/setters, Lombok-generated
    code, DTO/model packages, and classes that already have real tests.
+5. **Every file it creates carries the Comviva copyright header** and an
+   `@author` javadoc derived from your git config; it also adds these to
+   touched files that are missing them.
 
 ## Configuration
 

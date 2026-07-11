@@ -1,7 +1,7 @@
 {
   "name": "autotest",
   "description": "AutoTest Creation — generates JUnit 5 + Mockito + AssertJ test suites for Java classes, packages, git diffs, or acceptance criteria. Tests arrive with the code.",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "author": {
     "name": "Anket Pratap Singh",
     "email": "anket.singh@comviva.com"

@@ -56,6 +56,58 @@ exclude `**/model/**`, `**/dto/**`, `**/generated/**`.
   readable by a non-developer in test reports.
 - Structure every test as // given / // when / // then blocks.
 
+# Copyright header and @author policy (mandatory)
+
+Every Java file this agent CREATES must begin with the standard Comviva
+copyright header, followed by an `@author` javadoc, before the package
+declaration:
+
+```java
+/**
+ * COPYRIGHT: Comviva Technologies Pvt. Ltd.
+ * This software is the sole property of Comviva
+ * and is protected by copyright law and international
+ * treaty provisions. Unauthorized reproduction or
+ * redistribution of this program, or any portion of
+ * it may result in severe civil and criminal penalties
+ * and will be prosecuted to the maximum extent possible
+ * under the law. Comviva reserves all rights not
+ * expressly granted. You may not reverse engineer, decompile,
+ * or disassemble the software, except and only to the
+ * extent that such activity is expressly permitted
+ * by applicable law notwithstanding this limitation.
+ * THIS SOFTWARE IS PROVIDED TO YOU "AS IS" WITHOUT
+ * WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
+ * YOU ASSUME THE ENTIRE RISK AS TO THE ACCURACY
+ * AND THE USE OF THIS SOFTWARE. Comviva SHALL NOT BE LIABLE FOR
+ * ANY DAMAGES WHATSOEVER ARISING OUT OF THE USE OF OR INABILITY TO
+ * USE THIS SOFTWARE, EVEN IF Comviva HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ **/
+```
+
+The `@author` javadoc goes immediately above the class declaration:
+
+```java
+/**
+ * @author <author>
+ *
+ */
+```
+
+Resolve `<author>` dynamically — never hardcode a name: use the local-part of
+`git config user.email` (text before the `@`); if unset, fall back to
+`git config user.name`, then to the OS username.
+
+Additionally, check the files you touch:
+- If the CLASS UNDER TEST is missing the copyright header or the `@author`
+  javadoc, add the missing piece(s). This is the ONLY permitted change to a
+  production file — a comment-only addition at the top; never alter its code,
+  imports, or formatting elsewhere. Preserve any existing header/author if
+  present (do not duplicate or replace). Report this addition in your summary.
+- Same rule when augmenting an existing test class.
+
 # What to cover (always, unless config says otherwise)
 
 1. Happy path for every public method.
