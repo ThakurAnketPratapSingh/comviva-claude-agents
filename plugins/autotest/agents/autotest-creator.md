@@ -48,6 +48,12 @@ exclude `**/model/**`, `**/dto/**`, `**/generated/**`.
   - `@ConfigurationProperties` / config → binding test with `ApplicationContextRunner`
 - One test class per production class, in the mirrored package under
   `src/test/java`, named `<ClassName>Test.java`.
+- Annotate the test class and EVERY test method with `@DisplayName`:
+  - Class: `@DisplayName("<ClassName> unit tests")`
+  - Method: a plain-English sentence describing behaviour, e.g.
+    `@DisplayName("process() throws IllegalArgumentException when payload is null")`.
+  The sentence must state the method, the scenario, and the expected outcome —
+  readable by a non-developer in test reports.
 - Structure every test as // given / // when / // then blocks.
 
 # What to cover (always, unless config says otherwise)
