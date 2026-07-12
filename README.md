@@ -27,9 +27,11 @@ Current plugins:
    ```
    If it lists refs, you're good. If it asks for credentials, use your GitHub
    username and a personal access token - git will cache them.
-3. **Maven on PATH** - the agent runs `mvn test-compile` and `mvn test`.
-   Verify with `mvn -v`. Your project must build locally (internal
-   dependencies like `Encryption-Utils` must resolve from Nexus/Artifactory).
+3. **Maven on PATH** - the agent runs `mvn test`. Verify with `mvn -v`.
+   Your project must build locally (internal dependencies like
+   `Encryption-Utils` must resolve from Nexus/Artifactory). Optional but
+   recommended: install `mvnd` (the Maven daemon) - the agent uses it
+   automatically and runs much faster.
 
 ### Step 1 - Add the marketplace (once per machine)
 
@@ -86,13 +88,23 @@ Plain English also works: just type *"generate tests for ProcessDataRecords"*.
    `src/test/java` - JUnit 5 + Mockito + AssertJ, `@DisplayName` on every
    test, `methodUnderTest_scenario_expectedOutcome` naming, given/when/then
    structure, covering happy path, nulls, empty collections, boundary values,
-   and exception paths.
-3. It compiles (`mvn test-compile`) and runs (`mvn test -Dtest=...`) the new
-   tests, fixing its own mistakes until green. It **never edits production
-   code** - if a test exposes a real bug, the test is marked
-   `@Disabled("documents suspected bug: ...")` and the bug is reported to you.
-4. You get a summary: files created, tests by category, compile/run status,
-   coverage vs target, suspected bugs.
+   and exception paths. Every new file carries the Comviva copyright header
+   and an `@author` javadoc derived from your git config.
+3. It compiles and runs the new tests in one invocation
+   (`mvn test -Dtest=...`, QA plugins skipped, `mvnd` used when available),
+   fixing its own mistakes until green. When several classes are targeted,
+   test files are generated in parallel and verified together in one batched
+   build per module. It **never edits production code** - if a test exposes
+   a real bug, the test is marked `@Disabled("documents suspected bug: ...")`
+   and the bug is reported to you. (Sole exception: a missing copyright
+   header or `@author` javadoc is added to touched files - a comment-only
+   change, always reported in the summary.)
+4. Classes that already have real tests are **not regenerated** - they go
+   through review mode instead: the existing tests are run with JaCoCo and
+   the report shows measured coverage vs the target plus any gaps.
+5. You get a summary: files created, tests by category, compile/run status,
+   coverage vs target (reported as "not measured" when JaCoCo is
+   unavailable - never estimated), suspected bugs.
 
 ### Step 6 - Review and commit (you, not the agent)
 
@@ -153,6 +165,7 @@ include_edge_cases:
   - exception_paths
 exclude_paths:
   - "**/model/**"
+  - "**/dto/**"
   - "**/generated/**"
 ```
 
@@ -166,7 +179,7 @@ Without the file, the agent uses those same values as defaults.
 |---|---|
 | `/autotest` not in the command list | Restart the Claude Code session (plugins load at startup); check `/plugin` shows it enabled |
 | Marketplace add fails with auth error | Run `git ls-remote <repo-url>` first so git caches your GitHub credentials |
-| `mvn test-compile` fails on internal deps | Your project must build locally first - fix `settings.xml` / Nexus access, then re-run |
+| Maven build fails on internal deps | Your project must build locally first - fix `settings.xml` / Nexus access, then re-run |
 | Agent generated a wrong assertion | Fix it and mention it in your MR; refine `agents/autotest-creator.md` here if it's a recurring pattern |
 
 ---
