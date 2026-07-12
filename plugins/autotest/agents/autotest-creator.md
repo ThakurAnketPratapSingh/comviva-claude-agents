@@ -119,6 +119,26 @@ Additionally, check the files you touch:
 
 Skip trivial getters/setters/Lombok-generated code.
 
+# Build speed
+
+Maven startup dominates iteration time — minimize invocations and per-run
+work:
+
+- If `mvnd` (the Maven daemon) is on PATH, use it in place of `mvn` for every
+  command; the warm daemon saves tens of seconds per invocation.
+- ONE invocation per iteration: `mvn test` already compiles test sources —
+  never run `test-compile` and `test` as separate commands.
+- Skip QA plugins that don't affect whether the tests pass:
+  `-Dcheckstyle.skip=true -Dpmd.skip=true -Dspotbugs.skip=true`
+  `-Denforcer.skip=true -Dmaven.javadoc.skip=true -Djacoco.skip=true`
+  (drop `-Djacoco.skip=true` on the run where you measure coverage).
+- After the first successful invocation, add `-o` (offline) to retries — the
+  dependencies are already in the local repo. If `-o` fails with a dependency
+  resolution error, drop it and continue online.
+- Multi-module: `-pl <module> -am` on the first invocation, then
+  `-pl <module>` alone on retries (upstream modules are already built). Add
+  `-T 1C` when `-am` has to build several upstream modules.
+
 # Workflow
 
 1. Read the target class fully, plus every collaborator type it references
@@ -126,15 +146,30 @@ Skip trivial getters/setters/Lombok-generated code.
    method signatures.
 2. Plan the test list first: enumerate public methods × scenarios.
 3. Write the test file to the mirrored path under `src/test/java`.
-4. Compile: `mvn test-compile -q` (or `gradle testClasses`). If it fails, fix
-   the test — never the production code — and retry until it compiles.
-5. Run: `mvn -q test -Dtest=<ClassName>Test` (or the Gradle equivalent). Fix
-   failures caused by wrong expectations in the test. If a failure reveals a
-   real bug in production code, DO NOT change production code; mark that test
+4. If the orchestrator said verification is BATCHED (multi-class run), STOP
+   here: report the file as "written, pending batch verification" — the
+   orchestrator compiles and runs all new tests in one build and will send
+   you the failure output if your file needs fixing.
+5. Otherwise verify yourself, compile AND run in ONE invocation:
+   `mvn -q test -Dtest=<ClassName>Test -DfailIfNoTests=false` plus the
+   build-speed flags above (Gradle: `gradle test --tests <ClassName>Test`).
+   In a multi-module reactor run from the root with `-pl <module> -am` —
+   without `-DfailIfNoTests=false`, sibling modules fail with "No tests were
+   executed", which is NOT a test failure. Compile errors and test failures
+   both surface in this one command; fix the test — never the production
+   code — and retry. If a failure reveals a real bug in production code, DO
+   NOT change production code; mark that test
    `@Disabled("documents suspected bug: ...")` and report the bug clearly in
    your summary.
 6. If JaCoCo output is available, report line coverage for the class under
    test against the coverage target.
+
+# Fix mode (batch verification follow-up)
+
+When the orchestrator sends you an existing generated test file plus compile
+or surefire failure output: fix ONLY that test file (never production code,
+never other test files), do not run any build yourself, and report what you
+changed. The orchestrator re-runs the batch.
 
 # Review mode (existing test class)
 
@@ -143,16 +178,28 @@ the orchestrator explicitly asks for review mode — do not regenerate or
 rewrite the existing tests. Instead:
 
 1. Read the production class and its existing test class fully.
-2. Run the existing tests: `mvn -q test -Dtest=<ClassName>Test` (or Gradle
-   equivalent). Report pass/fail counts.
+2. Run the existing tests: `mvn -q test -Dtest=<ClassName>Test
+   -DfailIfNoTests=false` (or Gradle equivalent; use `-pl <module> -am` in a
+   multi-module reactor). Report pass/fail counts.
 3. Measure coverage with JaCoCo:
    - If the build already configures JaCoCo, use its report output (find the
      configured `outputDirectory`; default `target/site/jacoco/`).
-   - If not, run it from the command line WITHOUT editing the build file:
+   - If not, on Maven run it from the command line WITHOUT editing the build
+     file:
      `mvn org.jacoco:jacoco-maven-plugin:prepare-agent test
      -Dtest=<ClassName>Test org.jacoco:jacoco-maven-plugin:report`
+   - On a Gradle project that does NOT already apply the `jacoco` plugin,
+     there is no command-line equivalent — do NOT edit the build file to add
+     it. Report coverage as "not measurable in this project" and identify
+     gaps by reading the code instead (step 5 still applies).
    - Parse `jacoco.csv` (or the HTML/XML report) for the row of the class
      under test and compute line % and branch % as covered/(covered+missed).
+   - Sanity-check the result: if measured coverage is 0% for a class whose
+     tests just PASSED, the JaCoCo agent was probably never attached — the
+     usual cause is a surefire `<argLine>` in the pom that does not include
+     `@{argLine}`, which silently overrides `prepare-agent`. Check for that
+     and, if found, report "coverage not measurable in this project (surefire
+     argLine overrides the JaCoCo agent)" instead of 0%.
 4. Report the measured percentage against the coverage target and state
    plainly whether it meets the target, and highlight if it is below the
    fail-below threshold.
@@ -181,8 +228,16 @@ implementation lands. Skip the compile/run steps in this mode.
 
 Your final report must include: files created (paths), number of tests by
 category (happy/null/empty/boundary/exception), compile and run status,
-coverage estimate vs target, and any suspected production bugs found. Never
-claim a suite is merge-ready if it did not compile and pass.
+measured coverage vs target if JaCoCo ran — otherwise the words "not
+measured"; never estimate or invent a percentage — and any suspected
+production bugs found. Never claim a suite is merge-ready if it did not
+compile and pass. Under batched verification, state compile/run status as
+"pending batch verification" — the orchestrator owns the final status.
+
+In acceptance-criteria mode the report must instead include: files created,
+the tests written per acceptance criterion, and an explicit statement that
+the suite is an executable specification that will not compile until the
+implementation lands — the compile/run and coverage fields do not apply.
 
 In review mode the report must instead include: the existing test file path,
 existing test count and pass/fail status, MEASURED line and branch coverage

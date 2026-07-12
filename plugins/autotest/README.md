@@ -77,9 +77,12 @@ Every suite follows the same rules:
 
 ## Guarantees
 
-1. **It compiles and passes before it reports.** The agent runs
-   `mvn test-compile` and `mvn test -Dtest=<Class>Test`, fixing its own
-   mistakes until green.
+1. **It compiles and passes before it reports.** A single class is verified
+   with one `mvn test -Dtest=<Class>Test` run (compile + test in one
+   invocation, QA plugins skipped, `mvnd` used when available); multi-class
+   runs generate all test files in parallel, then verify them together in
+   one batched build per module — the agent fixes its own mistakes until
+   green.
 2. **It never edits production code.** If a generated test exposes a real
    bug, the test is marked `@Disabled("documents suspected bug: ...")` and
    the bug is called out in the summary. (Sole exception: if the class under
@@ -112,6 +115,7 @@ include_edge_cases:
   - exception_paths
 exclude_paths:
   - "**/model/**"
+  - "**/dto/**"
   - "**/generated/**"
 ```
 
